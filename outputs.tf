@@ -88,7 +88,7 @@ output "workers_user_data" {
   description = "User data of worker groups"
   value = concat(
     data.template_file.userdata.*.rendered,
-    data.template_file.launch_template_userdata.*.rendered,
+    values(data.template_file.launch_template_userdata)[*].rendered,
   )
 }
 

@@ -154,45 +154,46 @@ data "template_file" "userdata" {
 }
 
 data "template_file" "launch_template_userdata" {
-  count = var.create_eks ? local.worker_group_launch_template_count : 0
+  #count = var.create_eks ? local.worker_group_launch_template_count : 0
+  for_each = var.create_eks ? var.worker_groups_launch_template : {}
   template = lookup(
-    var.worker_groups_launch_template[count.index],
+    var.worker_groups_launch_template[each.key],
     "userdata_template_file",
     file(
-      lookup(var.worker_groups_launch_template[count.index], "platform", local.workers_group_defaults["platform"]) == "windows"
+      lookup(var.worker_groups_launch_template[each.key], "platform", local.workers_group_defaults["platform"]) == "windows"
       ? "${path.module}/templates/userdata_windows.tpl"
       : "${path.module}/templates/userdata.sh.tpl"
     )
   )
 
   vars = merge({
-    platform            = lookup(var.worker_groups_launch_template[count.index], "platform", local.workers_group_defaults["platform"])
+    platform            = lookup(var.worker_groups_launch_template[each.key], "platform", local.workers_group_defaults["platform"])
     cluster_name        = aws_eks_cluster.this[0].name
     endpoint            = aws_eks_cluster.this[0].endpoint
     cluster_auth_base64 = aws_eks_cluster.this[0].certificate_authority[0].data
     pre_userdata = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "pre_userdata",
       local.workers_group_defaults["pre_userdata"],
     )
     additional_userdata = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "additional_userdata",
       local.workers_group_defaults["additional_userdata"],
     )
     bootstrap_extra_args = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "bootstrap_extra_args",
       local.workers_group_defaults["bootstrap_extra_args"],
     )
     kubelet_extra_args = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "kubelet_extra_args",
       local.workers_group_defaults["kubelet_extra_args"],
     )
     },
     lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "userdata_template_extra_args",
       local.workers_group_defaults["userdata_template_extra_args"]
     )
@@ -214,9 +215,10 @@ data "aws_iam_instance_profile" "custom_worker_group_iam_instance_profile" {
 }
 
 data "aws_iam_instance_profile" "custom_worker_group_launch_template_iam_instance_profile" {
-  count = var.manage_worker_iam_resources ? 0 : local.worker_group_launch_template_count
+  #count = var.manage_worker_iam_resources ? 0 : local.worker_group_launch_template_count
+  for_each = var.manage_worker_iam_resources ? {} : var.worker_groups_launch_template
   name = lookup(
-    var.worker_groups_launch_template[count.index],
+    var.worker_groups_launch_template[each.key],
     "iam_instance_profile_name",
     local.workers_group_defaults["iam_instance_profile_name"],
   )
