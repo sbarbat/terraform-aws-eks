@@ -1,6 +1,15 @@
-data "aws_iam_policy_document" "cluster_assume_role_policy" {
+locals {
+  worker_ami_name_filter = var.worker_ami_name_filter != "" ? var.worker_ami_name_filter : "amazon-eks-node-${var.cluster_version}-v*"
+
+  # Windows nodes are available from k8s 1.14. If cluster version is less than 1.14, fix ami filter to some constant to not fail on 'terraform plan'.
+  worker_ami_name_filter_windows = (var.worker_ami_name_filter_windows != "" ?
+    var.worker_ami_name_filter_windows : "Windows_Server-2019-English-Core-EKS_Optimized-${tonumber(var.cluster_version) >= 1.14 ? var.cluster_version : 1.14}-*"
+  )
+}
+
+data "aws_iam_policy_document" "workers_assume_role_policy" {
   statement {
-    sid = "EKSClusterAssumeRole"
+    sid = "EKSWorkerAssumeRole"
 
     actions = [
       "sts:AssumeRole",
@@ -8,54 +17,38 @@ data "aws_iam_policy_document" "cluster_assume_role_policy" {
 
     principals {
       type        = "Service"
-      identifiers = ["eks.amazonaws.com"]
+      identifiers = ["ec2.amazonaws.com"]
     }
   }
 }
 
-data "template_file" "kubeconfig" {
-  count    = var.create_eks ? 1 : 0
-  template = file("${path.module}/templates/kubeconfig.tpl")
-
-  vars = {
-    kubeconfig_name           = local.kubeconfig_name
-    endpoint                  = aws_eks_cluster.this[0].endpoint
-    cluster_auth_base64       = aws_eks_cluster.this[0].certificate_authority[0].data
-    aws_authenticator_command = var.kubeconfig_aws_authenticator_command
-    aws_authenticator_command_args = length(var.kubeconfig_aws_authenticator_command_args) > 0 ? "        - ${join(
-      "\n        - ",
-      var.kubeconfig_aws_authenticator_command_args,
-      )}" : "        - ${join(
-      "\n        - ",
-      formatlist("\"%s\"", ["token", "-i", aws_eks_cluster.this[0].name]),
-    )}"
-    aws_authenticator_additional_args = length(var.kubeconfig_aws_authenticator_additional_args) > 0 ? "        - ${join(
-      "\n        - ",
-      var.kubeconfig_aws_authenticator_additional_args,
-    )}" : ""
-    aws_authenticator_env_variables = length(var.kubeconfig_aws_authenticator_env_variables) > 0 ? "      env:\n${join(
-      "\n",
-      data.template_file.aws_authenticator_env_variables.*.rendered,
-    )}" : ""
+data "aws_ami" "eks_worker" {
+  filter {
+    name   = "name"
+    values = [local.worker_ami_name_filter]
   }
+
+  most_recent = true
+
+  owners = [var.worker_ami_owner_id]
 }
 
-data "template_file" "aws_authenticator_env_variables" {
-  count = length(var.kubeconfig_aws_authenticator_env_variables)
-
-  template = <<EOF
-        - name: $${key}
-          value: $${value}
-EOF
-
-
-  vars = {
-    value = values(var.kubeconfig_aws_authenticator_env_variables)[count.index]
-    key   = keys(var.kubeconfig_aws_authenticator_env_variables)[count.index]
+data "aws_ami" "eks_worker_windows" {
+  filter {
+    name   = "name"
+    values = [local.worker_ami_name_filter_windows]
   }
+
+  filter {
+    name   = "platform"
+    values = ["windows"]
+  }
+
+  most_recent = true
+
+  owners = [var.worker_ami_owner_id_windows]
 }
 
-<<<<<<< Updated upstream
 data "template_file" "userdata" {
   count = var.create_eks ? local.worker_group_count : 0
   template = lookup(
@@ -103,59 +96,52 @@ data "template_file" "userdata" {
 }
 
 data "template_file" "launch_template_userdata" {
-  count = var.create_eks ? local.worker_group_launch_template_count : 0
+  #count = var.create_eks ? local.worker_group_launch_template_count : 0
+  for_each = var.create_eks ? var.worker_groups_launch_template : {}
   template = lookup(
-    var.worker_groups_launch_template[count.index],
+    var.worker_groups_launch_template[each.key],
     "userdata_template_file",
     file(
-      lookup(var.worker_groups_launch_template[count.index], "platform", local.workers_group_defaults["platform"]) == "windows"
+      lookup(var.worker_groups_launch_template[each.key], "platform", local.workers_group_defaults["platform"]) == "windows"
       ? "${path.module}/templates/userdata_windows.tpl"
       : "${path.module}/templates/userdata.sh.tpl"
     )
   )
 
   vars = merge({
-    platform            = lookup(var.worker_groups_launch_template[count.index], "platform", local.workers_group_defaults["platform"])
+    platform            = lookup(var.worker_groups_launch_template[each.key], "platform", local.workers_group_defaults["platform"])
     cluster_name        = aws_eks_cluster.this[0].name
     endpoint            = aws_eks_cluster.this[0].endpoint
     cluster_auth_base64 = aws_eks_cluster.this[0].certificate_authority[0].data
     pre_userdata = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "pre_userdata",
       local.workers_group_defaults["pre_userdata"],
     )
     additional_userdata = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "additional_userdata",
       local.workers_group_defaults["additional_userdata"],
     )
     bootstrap_extra_args = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "bootstrap_extra_args",
       local.workers_group_defaults["bootstrap_extra_args"],
     )
     kubelet_extra_args = lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "kubelet_extra_args",
       local.workers_group_defaults["kubelet_extra_args"],
     )
     },
     lookup(
-      var.worker_groups_launch_template[count.index],
+      var.worker_groups_launch_template[each.key],
       "userdata_template_extra_args",
       local.workers_group_defaults["userdata_template_extra_args"]
     )
   )
 }
-=======
->>>>>>> Stashed changes
 
-data "aws_iam_role" "custom_cluster_iam_role" {
-  count = var.manage_cluster_iam_resources ? 0 : 1
-  name  = var.cluster_iam_role_name
-}
-
-<<<<<<< Updated upstream
 data "aws_iam_instance_profile" "custom_worker_group_iam_instance_profile" {
   count = var.manage_worker_iam_resources ? 0 : local.worker_group_count
   name = lookup(
@@ -166,12 +152,11 @@ data "aws_iam_instance_profile" "custom_worker_group_iam_instance_profile" {
 }
 
 data "aws_iam_instance_profile" "custom_worker_group_launch_template_iam_instance_profile" {
-  count = var.manage_worker_iam_resources ? 0 : local.worker_group_launch_template_count
+  #count = var.manage_worker_iam_resources ? 0 : local.worker_group_launch_template_count
+  for_each = var.manage_worker_iam_resources ? {} : var.worker_groups_launch_template
   name = lookup(
-    var.worker_groups_launch_template[count.index],
+    var.worker_groups_launch_template[each.key],
     "iam_instance_profile_name",
     local.workers_group_defaults["iam_instance_profile_name"],
   )
 }
-=======
->>>>>>> Stashed changes
