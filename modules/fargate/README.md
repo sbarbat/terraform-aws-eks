@@ -14,6 +14,7 @@ Helper submodule to create and manage resources related to `aws_eks_fargate_prof
 | namespace | Kubernetes namespace for selection | `string` | n/a | yes |
 | labels | Key-value map of Kubernetes labels for selection | `map(string)` | `{}` | no |
 | tags | Key-value map of resource tags. Will be merged with root module tags. | `map(string)` | `var.tags` | no |
+| subnets | List of subnet IDs. Will replace the root module subnets. | `list(string)` | `var.subnets` | no |
 
 <!-- BEGINNING OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
 ## Requirements
@@ -25,6 +26,20 @@ No requirements.
 | Name | Version |
 |------|---------|
 | aws | n/a |
+
+## Modules
+
+No Modules.
+
+## Resources
+
+| Name |
+|------|
+| [aws_eks_fargate_profile](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/eks_fargate_profile) |
+| [aws_iam_policy_document](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) |
+| [aws_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_role) |
+| [aws_iam_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) |
+| [aws_iam_role_policy_attachment](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) |
 
 ## Inputs
 
@@ -51,5 +66,4 @@ No requirements.
 | fargate\_profile\_ids | EKS Cluster name and EKS Fargate Profile names separated by a colon (:). |
 | iam\_role\_arn | IAM role ARN for EKS Fargate pods |
 | iam\_role\_name | IAM role name for EKS Fargate pods |
-
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
