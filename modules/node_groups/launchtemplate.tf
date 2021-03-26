@@ -10,11 +10,7 @@ data "cloudinit_config" "workers_userdata" {
       {
         pre_userdata       = each.value["pre_userdata"]
         kubelet_extra_args = each.value["kubelet_extra_args"]
-        
-        cluster_name        = var.cluster_name
-        endpoint            = module.eks.cluster_endpoint
-        cluster_auth_base64 = module.eks.cluster_certificate_authority_data
-
+       
         bootstrap_extra_args = "--use-max-pods false"
       }
     )
