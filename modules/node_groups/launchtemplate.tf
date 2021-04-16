@@ -8,6 +8,10 @@ data "cloudinit_config" "workers_userdata" {
     content_type = "text/x-shellscript"
     content = templatefile("${path.module}/templates/userdata.sh.tpl",
       {
+        cluster_name        = var.cluster_name
+        endpoint            = module.eks.cluster_endpoint
+        cluster_auth_base64 = module.eks.cluster_certificate_authority_data
+
         pre_userdata       = each.value["pre_userdata"]
         kubelet_extra_args = each.value["kubelet_extra_args"]
        
@@ -39,7 +43,7 @@ resource "aws_launch_template" "workers" {
     }
   }
   
-  image_id = each.value["ami_image_id"] 
+  image_id = each.value["ami_image_id"]
   instance_type = each.value["set_instance_types_on_lt"] ? element(each.value.instance_types, 0) : null
 
   monitoring {
