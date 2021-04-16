@@ -38,7 +38,8 @@ resource "aws_launch_template" "workers" {
       delete_on_termination = true
     }
   }
-
+  
+  image_id = each.value["ami_image_id"] 
   instance_type = each.value["set_instance_types_on_lt"] ? element(each.value.instance_types, 0) : null
 
   monitoring {
