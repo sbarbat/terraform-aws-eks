@@ -14,8 +14,7 @@ data "cloudinit_config" "workers_userdata" {
 
         pre_userdata       = each.value["pre_userdata"]
         kubelet_extra_args = each.value["kubelet_extra_args"]
-       
-        bootstrap_extra_args = "--use-max-pods false"
+        bootstrap_extra_args = each.value["bootstrap_extra_args"]
       }
     )
   }

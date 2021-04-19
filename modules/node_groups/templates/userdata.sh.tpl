@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # Uncomment for Weave CNI
-rm -f /etc/cni/net.d/10-aws.conflist
+# rm -f /etc/cni/net.d/10-aws.conflist
 
 # Allow user supplied pre userdata code
 ${pre_userdata}
