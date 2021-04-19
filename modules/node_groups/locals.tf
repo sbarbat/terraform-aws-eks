@@ -14,6 +14,7 @@ locals {
       subnets                       = var.workers_group_defaults["subnets"]
       create_launch_template        = false
       kubelet_extra_args            = var.workers_group_defaults["kubelet_extra_args"]
+      bootstrap_extra_args          = var.workers_group_defaults["bootstrap_extra_args"]
       disk_size                     = var.workers_group_defaults["root_volume_size"]
       disk_type                     = var.workers_group_defaults["root_volume_type"]
       enable_monitoring             = var.workers_group_defaults["enable_monitoring"]
