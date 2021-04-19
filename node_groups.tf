@@ -1,7 +1,11 @@
 module "node_groups" {
   source                               = "./modules/node_groups"
   create_eks                           = var.create_eks
+  
   cluster_name                         = coalescelist(aws_eks_cluster.this[*].name, [""])[0]
+  cluster_endpoint                     = coalescelist(aws_eks_cluster.this[*].endpoint, [""])[0]
+  cluster_auth_base64                  = coalescelist(aws_eks_cluster.this[*].certificate_authority[0].data, [""])[0]
+
   default_iam_role_arn                 = coalescelist(aws_iam_role.workers[*].arn, [""])[0]
   workers_group_defaults               = local.workers_group_defaults
   worker_security_group_id             = local.worker_security_group_id

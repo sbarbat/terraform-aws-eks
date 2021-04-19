@@ -9,8 +9,8 @@ data "cloudinit_config" "workers_userdata" {
     content = templatefile("${path.module}/templates/userdata.sh.tpl",
       {
         cluster_name        = var.cluster_name
-        endpoint            = module.eks.cluster_endpoint
-        cluster_auth_base64 = module.eks.cluster_certificate_authority_data
+        cluster_endpoint    = var.cluster_endpoint
+        cluster_auth_base64 = var.cluster_auth_base64
 
         pre_userdata       = each.value["pre_userdata"]
         kubelet_extra_args = each.value["kubelet_extra_args"]
